@@ -151,6 +151,7 @@ class BundleCard extends HTMLElement {
       </div>
     `
 
+    this.initSwiper()
     this.addEventListeners()
     this.updateUI()
   }
@@ -261,6 +262,12 @@ class BundleCard extends HTMLElement {
     priceEl.textContent = this.formatMoney(this.selectedVariant.price)
     buttonEl.disabled = !this.selectedVariant.available
     buttonEl.textContent = this.selectedVariant.available ? this.buttonText : 'Sold Out'
+
+    // Sync slider with the variant's featured image
+    if (this.selectedVariant?.featured_media?.id && this.swiper && this._mediaIndex) {
+      const i = this._mediaIndex.get(this.selectedVariant.featured_media.id)
+      if (i > -1) this.swiper.slideTo(i)
+    }
   }
 
   /**
@@ -271,6 +278,32 @@ class BundleCard extends HTMLElement {
   }
 
   // --- UTILITY METHODS ---
+
+  /**
+   * Initializes the Swiper.js slider.
+   */
+  async initSwiper() {
+    const root = this.shadowRoot
+    const container = root.querySelector('.swiper')
+    if (!container) return
+    try {
+      await ensureSwiper()
+      const nextEl = root.querySelector('.swiper-button-next')
+      const prevEl = root.querySelector('.swiper-button-prev')
+
+      this.swiper = new Swiper(container, {
+        // autoplay: {
+        //   delay: 5000,
+        // },
+        slidesPerView: 1,
+        spaceBetween: 10,
+        navigation: { nextEl, prevEl },
+      })
+    } catch (error) {
+      console.warn('BundleCard: Swiper unavailable, rendering static images.', error)
+      root.querySelectorAll('.swiper-button-next,.swiper-button-prev').forEach((el) => el.remove())
+    }
+  }
 
   /**
    * Formats a price in cents into a currency string.
@@ -332,5 +365,4 @@ class BundleCard extends HTMLElement {
     `
   }
 }
-
 customElements.define('bundle-card', BundleCard)
