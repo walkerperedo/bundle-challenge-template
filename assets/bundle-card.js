@@ -275,6 +275,81 @@ class BundleCard extends HTMLElement {
    * Constructs the payload and sends it to the Shopify Cart API.
    */
   async onAddToCart() {
+    // Get the main product's selected variant ID from the main product form in the Light DOM.
+    const mainProductForm = document.querySelector(`form[action="/cart/add"]`)
+    const mainProductVariantId = new FormData(mainProductForm).get('id')
+
+    if (!mainProductVariantId) {
+      console.error('Shopify Bundle Card: Could not find main product variant ID.')
+      alert('Please select an option for the main product first.')
+      return
+    }
+
+    const button = this.shadowRoot.querySelector('.add-bundle-button')
+    button.disabled = true
+    button.textContent = 'Adding...'
+
+    const bundleId = `${this.mainProductId}-${this.bundleProductData.id}`
+
+    const items = [
+      {
+        id: mainProductVariantId,
+        quantity: 1,
+        properties: { _bundle_id: bundleId, _bundle_rol: 'main' },
+      },
+      {
+        id: this.selectedVariant.id,
+        quantity: 1,
+        properties: { _bundle_id: bundleId, _bundle_rol: 'addon' },
+      },
+    ]
+
+    const fd = this.buildAddFormData(items)
+    const cfg = this.fetchConfigJS()
+    cfg.body = fd
+
+    const addUrl = '/cart/add/'
+
+    try {
+      const res = await fetch(addUrl, cfg)
+      const json = await res.json()
+
+      if (json?.status) {
+        this.publishCartError({
+          source: 'bundle-card',
+          productVariantId: String(mainProductVariantId),
+          errors: json.errors || json.description,
+          message: json.message,
+        })
+        alert(json.message || 'Could not add items. Please try again.')
+        return
+      }
+
+      await this.publishCartUpdate({
+        source: 'bundle-card',
+        productVariantId: String(mainProductVariantId),
+        cartData: json,
+      })
+
+      const cart = this.getCartComponent()
+
+      if (cart && typeof cart.renderContents === 'function') {
+        cart.renderContents(json)
+        if (cart.classList?.contains('is-empty')) cart.classList.remove('is-empty')
+      } else {
+        document.querySelector('[data-cart-drawer-toggle],[data-drawer-toggle="cart"]')?.click()
+        if (!document.querySelector('cart-drawer, cart-notification')) {
+          window.location = (window.routes && window.routes.cart_url) || '/cart'
+        }
+      }
+
+      button.textContent = 'Added'
+      setTimeout(() => this.updateUI(), 700)
+    } catch (error) {
+      console.error('Shopify Bundle Card: Error adding bundle to cart.', error)
+    } finally {
+      this.updateUI()
+    }
   }
 
   // --- UTILITY METHODS ---
@@ -364,5 +439,88 @@ class BundleCard extends HTMLElement {
       </div>
     `
   }
+
+  // --- THEME HELPERS ---
+  // try to reuse the same cart component the theme uses (cart-drawer or cart-notification)
+  getCartComponent() {
+    return document.querySelector('cart-drawer, cart-notification')
+  }
+
+  fetchConfigJS() {
+    const config = fetchConfig('javascript')
+    config.headers['X-Requested-With'] = 'XMLHttpRequest'
+    delete config.headers['Content-Type']
+    return config
+  }
+
+  // build FormData for multiple items
+  buildAddFormData(items) {
+    const fd = new FormData()
+    items.forEach((it, i) => {
+      fd.append(`items[${i}][id]`, it.id)
+      fd.append(`items[${i}][quantity]`, String(it.quantity ?? 1))
+      if (it.properties) {
+        for (const [k, v] of Object.entries(it.properties)) {
+          fd.append(`items[${i}][properties][${k}]`, String(v))
+        }
+      }
+    })
+
+    const cart = this.getCartComponent()
+    if (cart && typeof cart.getSectionsToRender === 'function') {
+      const sections = cart.getSectionsToRender().map((s) => s.id)
+      fd.append('sections', sections)
+      fd.append('sections_url', window.location.pathname)
+      if (typeof cart.setActiveElement === 'function') cart.setActiveElement(document.activeElement)
+    }
+    return fd
+  }
+
+  // publish same pub/sub events
+  publishCartUpdate(payload) {
+    try {
+      if (typeof publish === 'function' && window.PUB_SUB_EVENTS?.cartUpdate) {
+        return publish(PUB_SUB_EVENTS.cartUpdate, payload)
+      }
+    } catch (e) {}
+    document.dispatchEvent(new CustomEvent('cart:updated', { bubbles: true, detail: payload }))
+    return Promise.resolve()
+  }
+
+  publishCartError(payload) {
+    try {
+      if (typeof publish === 'function' && window.PUB_SUB_EVENTS?.cartError) {
+        publish(PUB_SUB_EVENTS.cartError, payload)
+        return
+      }
+    } catch (e) {}
+    document.dispatchEvent(new CustomEvent('cart:error', { bubbles: true, detail: payload }))
+  }
 }
+const ensureSwiper = (() => {
+  let promise
+  return () => {
+    if (window.Swiper) return Promise.resolve()
+    if (promise) return promise
+
+    promise = new Promise((resolve, reject) => {
+      const scriptAlready = document.querySelector('script[data-swiper="12"]')
+      if (scriptAlready) {
+        scriptAlready.addEventListener('load', () => resolve())
+        scriptAlready.addEventListener('error', reject)
+        return
+      }
+      const s = document.createElement('script')
+      s.src = 'https://cdn.jsdelivr.net/npm/swiper@12/swiper-bundle.min.js'
+      s.defer = true
+      s.dataset.swiper = '12'
+      s.onload = () => resolve()
+      s.onerror = () => reject(new Error('Failed to load Swiper'))
+      document.head.appendChild(s)
+    })
+
+    return promise
+  }
+})()
+
 customElements.define('bundle-card', BundleCard)
