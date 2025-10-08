@@ -9,7 +9,11 @@ class BundleCard extends HTMLElement {
 
     // Customization
     this.cardTitle = this.getAttribute('card-title') || 'Frequently Bought Together';
-    this.buttonText = this.getAttribute('button-text') || 'Add Both & Save 10%';
+    this.disocunt_percent = this.getAttribute('discount-percent') || 10
+    this.disocunt_percent = parseFloat(this.disocunt_percent, 10)
+
+    this.buttonText = this.getAttribute('button-text') || `Add Both & Save ${this.disocunt_percent}%`;
+    this.buttonText = this.buttonText.replace('{}', this.disocunt_percent)
     this.titleSize = this.getAttribute('title-size') || '1.2rem';
 
     this.bundleProductData = null
@@ -382,8 +386,6 @@ class BundleCard extends HTMLElement {
 
   /**
    * Formats a price in cents into a currency string.
-   * This is a basic implementation. For production, use the Shopify.formatMoney function
-   * if available, or a more robust library to handle different currencies.
    * @param {number} priceInCents - The price in the smallest currency unit.
    * @returns {string} Formatted currency string (e.g., "$45.00").
    */

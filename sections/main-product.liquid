@@ -672,6 +672,7 @@
                     card-title="{{ block.settings.bundle_title | escape }}"
                     button-text="{{ block.settings.bundle_button_text | escape }}"
                     title-size="{{ block.settings.bundle_title_size }}px"
+                    discount-percent="{{ product.metafields.bundle.discount_percent }}"
                     class="bundle-card-container"
                   >
                   </bundle-card>
@@ -2109,7 +2110,8 @@
           "type": "text",
           "id": "bundle_button_text",
           "label": "Button Text",
-          "default": "Add Both & Save 10%"
+          "default": "Add Both & Save {}%",
+          "info": "Use {} as a placeholder for the discount percentage"
         },
         {
           "type": "range",
