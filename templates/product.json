@@ -60,7 +60,7 @@
           "settings": {
             "bundle_product": "enchanting-emerald-calla-mini-dress",
             "bundle_title": "Best paired with",
-            "bundle_button_text": "Add Both & Save 10%",
+            "bundle_button_text": "Add Both & Save {}%",
             "bundle_title_size": 25
           }
         }
