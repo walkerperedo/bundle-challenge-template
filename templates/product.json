@@ -54,6 +54,15 @@
           "settings": {
             "share_label": "Share"
           }
+        },
+        "bundle_eUBVYN": {
+          "type": "bundle",
+          "settings": {
+            "bundle_product": "enchanting-emerald-calla-mini-dress",
+            "bundle_title": "Best paired with",
+            "bundle_button_text": "Add Both & Save {}%",
+            "bundle_title_size": 25
+          }
         }
       },
       "block_order": [
@@ -64,7 +73,8 @@
         "quantity_selector",
         "buy_buttons",
         "description",
-        "share"
+        "share",
+        "bundle_eUBVYN"
       ],
       "settings": {
         "enable_sticky_info": true,

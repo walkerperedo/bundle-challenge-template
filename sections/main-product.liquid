@@ -41,6 +41,7 @@
 
   <script src="{{ 'product-info.js' | asset_url }}" defer="defer"></script>
   <script src="{{ 'product-form.js' | asset_url }}" defer="defer"></script>
+  <script src="{{ 'bundle-card.js' | asset_url }}" defer="defer"></script>
   {%- if product.quantity_price_breaks_configured? -%}
     <script src="{{ 'show-more.js' | asset_url }}" defer="defer"></script>
     <script src="{{ 'price-per-item.js' | asset_url }}" defer="defer"></script>
@@ -356,7 +357,10 @@
                                 </dt>
                                 <dd>
                                   <span class="price-per-item--current">
-                                    {{- 'products.product.volume_pricing.price_at_each_html' | t: price: variant_price -}}
+                                    {{-
+                                      'products.product.volume_pricing.price_at_each_html'
+                                      | t: price: variant_price
+                                    -}}
                                   </span>
                                 </dd>
                               </dl>
@@ -660,6 +664,19 @@
                 </product-recommendations>
               {%- when 'icon-with-text' -%}
                 {% render 'icon-with-text', block: block %}
+              {%- when 'bundle' -%}
+                {%- if block.settings.bundle_product != blank -%}
+                  <bundle-card
+                    main-product-id="{{ product.id }}"
+                    bundle-product-handle="{{ block.settings.bundle_product.handle }}"
+                    card-title="{{ block.settings.bundle_title | escape }}"
+                    button-text="{{ block.settings.bundle_button_text | escape }}"
+                    title-size="{{ block.settings.bundle_title_size }}px"
+                    discount-percent="{{ product.metafields.bundle.discount_percent }}"
+                    class="bundle-card-container"
+                  >
+                  </bundle-card>
+                {%- endif -%}
             {%- endcase -%}
           {%- endfor -%}
           <a href="{{ product.url }}" class="link product__view-details animate-arrow">
@@ -1674,7 +1691,7 @@
         {
           "type": "header",
           "content": "t:sections.main-product.blocks.icon_with_text.settings.pairing_2.label"
-        },        
+        },
         {
           "type": "select",
           "id": "icon_2",
@@ -1874,7 +1891,7 @@
         {
           "type": "header",
           "content": "t:sections.main-product.blocks.icon_with_text.settings.pairing_3.label"
-        },        
+        },
         {
           "type": "select",
           "id": "icon_3",
@@ -2072,6 +2089,41 @@
           "info": "t:sections.main-product.blocks.icon_with_text.settings.heading.info"
         }
       ]
+    },
+    {
+      "type": "bundle",
+      "name": "Product Bundle Card",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "product",
+          "id": "bundle_product",
+          "label": "Bundle Product"
+        },
+        {
+          "type": "text",
+          "id": "bundle_title",
+          "label": "Card Title",
+          "default": "Frequently Bought Together"
+        },
+        {
+          "type": "text",
+          "id": "bundle_button_text",
+          "label": "Button Text",
+          "default": "Add Both & Save {}%",
+          "info": "Use {} as a placeholder for the discount percentage"
+        },
+        {
+          "type": "range",
+          "id": "bundle_title_size",
+          "label": "Title Font Size",
+          "min": 16,
+          "max": 32,
+          "step": 1,
+          "unit": "px",
+          "default": 20
+        }
+      ]
     }
   ],
   "settings": [
@@ -2176,7 +2228,7 @@
       ],
       "default": "hide",
       "label": "t:sections.main-product.settings.mobile_thumbnails.label"
-    },    
+    },
     {
       "type": "select",
       "id": "media_position",
